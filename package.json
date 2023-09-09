@@ -1,0 +1,22 @@
+{
+  "name": "api-funcional",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/NoeAlejandroRodriguezMoto/API-FUNCIONAL.git"
+  },
+  "author": "NoeOn",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/NoeAlejandroRodriguezMoto/API-FUNCIONAL/issues"
+  },
+  "homepage": "https://github.com/NoeAlejandroRodriguezMoto/API-FUNCIONAL#readme",
+  "dependencies": {
+    "express": "^4.18.2"
+  }
+}
