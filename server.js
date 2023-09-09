@@ -1,13 +1,18 @@
 const express = require('express');
 const app = express();
+app.use(express.json());
+const validator = require('validator');
 const cors = require('cors');
 app.use(cors());
+const crypto = require("crypto");
 const bcrypt = require('bcrypt');
+const jwt = require('jsonwebtoken');
 
 
 const connection = require('./database');
 const emailConfig = require('./emailConfig');
 const middleWare = require('./middleWare');
+
 
 
 const isStrongPassword = (password) => {
@@ -380,7 +385,6 @@ app.post('/solicitar-cambio-contrasena', async (req, res) => {
     }
 });
 
-
 app.post('/verificar-codigo', async (req, res) => {
     const { email, verificationCode, code } = req.body;
 
@@ -456,6 +460,106 @@ app.post('/cambiar-contrasena', validarPasswords, async (req, res) => {
 });
 
 
+
+
+//Andrea Task
+
+app.post('/tareas/agregar', middleWare.verifyToken, (req, res) => {
+    const { nombre } = req.query;
+    const userId = req.userId; // Obtener userId del objeto req
+
+    if (!nombre) {
+        return res.status(400).json({ error: 'El nombre de la tarea es obligatorio' });
+    }
+
+    const query = 'INSERT INTO tareas (nombre, user_id) VALUES (?, ?)'; // Asegúrate de tener una columna user_id en tu tabla tareas
+    connection.query(query, [nombre, userId], (err, results) => {
+        if (err) {
+            console.error('Error al agregar la tarea a la base de datos:', err);
+            return res.status(500).json({ error: 'Error al agregar la tarea a la base de datos' });
+        }
+        res.status(200).json({ message: 'Tarea agregada exitosamente' });
+    });
+});
+
+
+
+// Define the route to get tasks
+app.get('/tareas', middleWare.verifyToken, (req, res) => {
+    const userId = req.userId; // Obtener userId del objeto req
+    const query = 'SELECT * FROM tareas WHERE user_id = ? ORDER BY id DESC'; // Filtrar tareas por user_id
+    connection.query(query, [userId], (err, results) => {
+        if (err) {
+            console.error('Error al obtener las tareas de la base de datos:', err);
+            return res.status(500).json({ error: 'Error al obtener las tareas de la base de datos' });
+        }
+        res.status(200).json(results);
+    });
+});
+
+
+app.put('/tareas/editar/:id', (req, res) => {
+    const { id } = req.params;
+    const { nombre } = req.body;
+
+    if (!nombre) {
+        return res.status(400).json({ error: 'El nuevo nombre de la tarea es obligatorio' });
+    }
+
+    const query = 'UPDATE tareas SET nombre = ? WHERE id = ?';
+    connection.query(query, [nombre, id], (err, results) => {
+        if (err) {
+            console.error('Error al editar la tarea en la base de datos:', err);
+            return res.status(500).json({ error: 'Error al editar la tarea en la base de datos' });
+        }
+        res.status(200).json({ message: 'Tarea editada exitosamente' });
+    });
+});
+
+function formatTimeForDatabase(seconds) {
+    const hours = Math.floor(seconds / 3600);
+    const minutes = Math.floor((seconds % 3600) / 60);
+    const secs = seconds % 60;
+
+    return `${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}:${secs.toString().padStart(2, '00')}`;
+}
+
+app.put('/tareas/finalizar/:id', middleWare.verifyToken, (req, res) => {
+    const { id } = req.params;
+    const { completed, tiempo } = req.body;
+    const userId = req.userId; // Obtener userId del objeto req
+    const tiempoFormateado = formatTimeForDatabase(tiempo);
+
+
+    if (completed === undefined) {
+        return res.status(400).json({ error: 'El estado completado es obligatorio' });
+    }
+
+    const query = 'UPDATE tareas SET completed = ?, tiempo = ?, fecha = NOW() WHERE id = ? AND user_id = ?';
+    connection.query(query, [completed, tiempoFormateado, id, userId], (err, results) => {
+        if (err) {
+            console.error('Error al marcar la tarea como completada en la base de datos:', err);
+            return res.status(500).json({ error: 'Error al marcar la tarea como completada en la base de datos' });
+        }
+        res.status(200).json({ message: 'Tarea marcada como completada exitosamente' });
+    });
+});
+
+
+// Define the route to get completed tasks
+app.get('/tareas/completadas', middleWare.verifyToken, (req, res) => {
+    const userId = req.userId; // Obtener userId del objeto req
+    // Query the database to get completed tasks for the user
+    const query = 'SELECT * FROM tareas WHERE completed = true AND user_id = ? ORDER BY id DESC';
+    connection.query(query, [userId], (err, results) => {
+        if (err) {
+            console.error('Error al obtener las tareas completadas de la base de datos:', err);
+            return res.status(500).json({ error: 'Error al obtener las tareas completadas de la base de datos' });
+        }
+        res.status(200).json(results);
+    });
+});
+
 app.listen(3000, () => {
-    console.log('server run on port 3000');
+    console.log('Server listening on port 3000');
 });
