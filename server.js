@@ -294,6 +294,167 @@ app.post('/login', async (req, res) => {
     }
 });
 
+function generateVerificationCode() {
+    const length = 6; // Longitud del código de verificación
+    const characters = '0123456789'; // Caracteres permitidos
+    let code = '';
+
+    for (let i = 0; i < length; i++) {
+        const randomIndex = Math.floor(Math.random() * characters.length);
+        code += characters[randomIndex];
+    }
+
+    return code;
+}
+
+app.post('/solicitar-cambio-contrasena', async (req, res) => {
+    const { email } = req.body;
+    const transporter = emailConfig.transporter; // Importa el transporter
+
+    try {
+        if (!email) {
+            return res.status(400).json({ error: 'El campo de correo electrónico es requerido' });
+        }
+
+        const getUserQuery = `SELECT password, verified FROM users WHERE email = ?`;
+        const values = [email];
+
+        const results = await new Promise((resolve, reject) => {
+            connection.query(getUserQuery, values, (err, results) => {
+                if (err) {
+                    console.error('Error querying the database:', err);
+                    reject(err);
+                }
+                resolve(results);
+            });
+        });
+
+        if (results.length === 0) {
+            return res.status(401).json({ message: 'No existe el correo', error: 'No existe el correo' });
+        }
+
+        const user = results[0];
+        if (!user.verified) {
+            return res.status(401).json({ error: 'Aún no has verificado tu correo' });
+        }
+
+        // Generar un código de verificación
+        const verificationCode = generateVerificationCode();
+
+        // Guardar el código de verificación en la base de datos
+        const updateVerificationCodeQuery = 'UPDATE users SET verificationCode = ? WHERE email = ?';
+        await new Promise((resolve, reject) => {
+            connection.query(updateVerificationCodeQuery, [verificationCode, email], (err, result) => {
+                if (err) {
+                    console.error('Error updating verification code:', err);
+                    reject(err);
+                }
+                resolve(result);
+            });
+        });
+
+        // Enviar correo electrónico con el código de verificación
+        const mailOptions = {
+            from: '"TareasProLiteOficial" <myemail@mail.com>',
+            to: email,
+            subject: 'Código de Verificación para Cambio de Contraseña',
+            html: `
+                <div style="font-family: Arial, sans-serif; padding: 20px;">
+                    <h2>Tareas Pro Lite - Cambio de Contraseña</h2>
+                    <p>Hemos recibido una solicitud para cambiar la contraseña de tu cuenta en Tareas Pro Lite. Por favor, sigue las instrucciones a continuación:</p>
+                    <p style="font-weight: bold; font-size: 18px;">Tu código de verificación es: <span style="color: #007bff;">${verificationCode}</span></p>
+                    <p>Ingresa este código en la página de verificación para continuar con el cambio de contraseña.</p>
+                    <p>Si no has solicitado este cambio o no reconoces esta acción, por favor contáctanos inmediatamente en <a href="mailto:tareasproliteoficial@gmail.com">tareasproliteoficial@gmail.com</a>.</p>
+                    <p>Gracias por utilizar Tareas Pro Lite para gestionar tus tareas y proyectos.</p>
+                    <p>Atentamente,<br>El equipo de Tareas Pro Lite</p>
+                </div>
+            `,
+        };
+
+        await transporter.sendMail(mailOptions); // Utiliza el transporter
+
+        res.status(200).json({ message: 'Se ha enviado un correo con el código de verificación', codigo: verificationCode });
+    } catch (error) {
+        console.error('Error:', error);
+        res.status(500).json({ error: 'Error al solicitar el código. Verifica tu correo electrónico.' });
+    }
+});
+
+
+app.post('/verificar-codigo', async (req, res) => {
+    const { email, verificationCode, code } = req.body;
+
+    try {
+        if (verificationCode === code) {
+            res.status(200).json({ message: 'Código de verificación correcto' });
+        } else {
+            res.status(400).json({ error: 'Código de verificación incorrecto' });
+        }
+    } catch (error) {
+        console.error('Error:', error);
+        res.status(500).json({ error: 'Error al verificar el código de verificación' });
+    }
+});
+
+function validarPasswords(req, res, next) {
+    const { newPassword, confirmPassword } = req.body;
+
+    try {
+        if (newPassword !== confirmPassword) {
+            return res.status(400).json({ error: 'Las contraseñas no coinciden' });
+        }
+        next();
+    } catch (error) {
+        console.error('Error:', error);
+        res.status(500).json({ error: 'Error al validar las contraseñas' });
+    }
+}
+
+app.post('/cambiar-contrasena', validarPasswords, async (req, res) => {
+    const { email, newPassword } = req.body;
+    const transporter = emailConfig.transporter; // Importa el transporter
+
+    if (!email || !newPassword) {
+        return res.status(400).json({ error: 'Todos los campos son requeridos' });
+    }
+
+    if (!isStrongPassword(newPassword)) {
+        return res.status(400).json({ error: 'La contraseña debe tener al menos 8 caracteres, una letra mayúscula y un número' });
+    }
+
+    try {
+        const salt = await bcrypt.genSalt(10);
+        const hashedPassword = await bcrypt.hash(newPassword, salt);
+
+        const updatePasswordQuery = 'UPDATE users SET password = ?, verificationCode = NULL WHERE email = ?';
+        await connection.query(updatePasswordQuery, [hashedPassword, email]);
+
+        // Enviar correo electrónico de confirmación después de cambiar la contraseña
+        const mailOptions = {
+            from: '"TareasProLiteOficial" <myemail@mail.com>',
+            to: email,
+            subject: 'Cambio de Contraseña Exitoso',
+            html: `
+                <div style="font-family: Arial, sans-serif; padding: 20px;">
+                    <h2 style="color: #333;">¡Cambio de Contraseña Exitoso!</h2>
+                    <p style="font-size: 16px;">Hola,</p>
+                    <p style="font-size: 16px;">Queremos informarte que tu contraseña ha sido cambiada con éxito en nuestro sistema.</p>
+                    <p style="font-size: 16px;">Si no reconoces esta actividad, por favor contáctanos de inmediato.</p>
+                    <p style="font-size: 16px;">¡Gracias por confiar en nosotros!</p>
+                    <p style="font-size: 16px;">Atentamente,<br>El equipo de Tareas Pro Lite</p>
+                </div>
+            `,
+        };
+
+        await transporter.sendMail(mailOptions); // Utiliza el transporter
+
+        res.status(200).json({ message: 'Contraseña cambiada exitosamente' });
+    } catch (error) {
+        console.error('Error:', error);
+        res.status(500).json({ error: 'Error al cambiar la contraseña' });
+    }
+});
+
 
 app.listen(3000, () => {
     console.log('server run on port 3000');
