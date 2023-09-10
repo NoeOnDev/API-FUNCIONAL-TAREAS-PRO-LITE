@@ -266,12 +266,14 @@ app.post('/login', async (req, res) => {
         });
 
         if (results.length === 0) {
+            // No se encontró el usuario, lo cual es un error de autenticación
             return res.status(401).json({ error: 'No hemos podido autenticar su acceso' });
         }
 
         const user = results[0];
 
         if (!user.verified) {
+            // El usuario no está verificado y no puede iniciar sesión
             return res.status(401).json({ error: 'Por favor, verifique su cuenta antes de iniciar sesión' });
         }
 
@@ -287,6 +289,7 @@ app.post('/login', async (req, res) => {
         });
 
         if (!isMatch) {
+            // La contraseña no coincide, lo cual es un error de autenticación
             return res.status(401).json({ error: 'No hemos podido autenticar su acceso' });
         }
 
@@ -298,6 +301,7 @@ app.post('/login', async (req, res) => {
         res.status(500).json({ error: 'Ocurrió un error durante el proceso de inicio de sesión. Por favor, inténtelo de nuevo más tarde.' });
     }
 });
+
 
 app.post('/solicitar-cambio-contrasena', async (req, res) => {
     const { email } = req.body;
@@ -344,17 +348,17 @@ app.post('/solicitar-cambio-contrasena', async (req, res) => {
             to: email,
             subject: 'Código de Verificación para Cambio de Contraseña',
             html: `
-                <div style="font-family: Arial, sans-serif; padding: 20px;">
-                    <h2 style="color: #333;">Código de Verificación</h2>
-                    <p style="font-size: 16px;">Hola,</p>
-                    <p style="font-size: 16px;">Has solicitado un cambio de contraseña en Tareas Pro Lite. Utiliza el siguiente código de verificación para continuar con el proceso:</p>
-                    <p style="font-size: 24px; font-weight: bold;">${verificationCode}</p>
-                    <p style="font-size: 16px;">Este código de verificación es válido por un tiempo limitado.</p>
-                    <p style="font-size: 16px;">Si no solicitaste este cambio, puedes ignorar este correo.</p>
-                    <p style="font-size: 16px;">¡Gracias por utilizar Tareas Pro Lite!</p>
-                    <p style="font-size: 16px;">Atentamente,<br>El equipo de Tareas Pro Lite</p>
-                </div>
-            `,
+        <div style="font-family: Arial, sans-serif; padding: 20px;">
+            <h2 style="color: #333;">Código de Verificación</h2>
+            <p style="font-size: 16px;">Estimado usuario,</p>
+            <p style="font-size: 16px;">Has solicitado un cambio de contraseña en Tareas Pro Lite. Utiliza el siguiente código de verificación para continuar con el proceso:</p>
+            <p style="font-size: 24px; font-weight: bold; color: #007bff;">${verificationCode}</p>
+            <p style="font-size: 16px;">Este código de verificación es válido por un tiempo limitado.</p>
+            <p style="font-size: 16px;">Si no solicitaste este cambio, puedes ignorar este correo.</p>
+            <p style="font-size: 16px;">Agradecemos tu confianza en Tareas Pro Lite y estamos aquí para ayudarte en cada paso.</p>
+            <p style="font-size: 16px;">Atentamente,<br>El equipo de Tareas Pro Lite</p>
+        </div>
+    `,
         };
 
         await transporter.sendMail(mailOptions);
