@@ -299,106 +299,121 @@ app.post('/login', async (req, res) => {
     }
 });
 
-function generateVerificationCode() {
-    const length = 6; // Longitud del código de verificación
-    const characters = '0123456789'; // Caracteres permitidos
-    let code = '';
-
-    for (let i = 0; i < length; i++) {
-        const randomIndex = Math.floor(Math.random() * characters.length);
-        code += characters[randomIndex];
-    }
-
-    return code;
-}
-
 app.post('/solicitar-cambio-contrasena', async (req, res) => {
     const { email } = req.body;
-    const transporter = emailConfig.transporter; // Importa el transporter
 
     try {
-        if (!email) {
-            return res.status(400).json({ error: 'El campo de correo electrónico es requerido' });
-        }
-
-        const getUserQuery = `SELECT password, verified FROM users WHERE email = ?`;
-        const values = [email];
-
-        const results = await new Promise((resolve, reject) => {
-            connection.query(getUserQuery, values, (err, results) => {
+        // Verificar si el correo electrónico proporcionado está registrado
+        const userQuery = 'SELECT * FROM users WHERE email = ?';
+        const user = await new Promise((resolve, reject) => {
+            connection.query(userQuery, [email], (err, results) => {
                 if (err) {
                     console.error('Error querying the database:', err);
                     reject(err);
                 }
-                resolve(results);
+                resolve(results[0]);
             });
         });
 
-        if (results.length === 0) {
-            return res.status(401).json({ message: 'No existe el correo', error: 'No existe el correo' });
+        if (!user) {
+            return res.status(400).json({ error: 'El correo electrónico no está registrado' });
         }
 
-        const user = results[0];
+        // Verificar si el correo electrónico está verificado
         if (!user.verified) {
-            return res.status(401).json({ error: 'Aún no has verificado tu correo' });
+            return res.status(400).json({ error: 'Correo no verificado' });
         }
 
-        // Generar un código de verificación
-        const verificationCode = generateVerificationCode();
-
-        // Guardar el código de verificación en la base de datos
-        const updateVerificationCodeQuery = 'UPDATE users SET verificationCode = ? WHERE email = ?';
+        // Generar y almacenar un código de verificación único en la base de datos
+        const verificationCode = crypto.randomBytes(6).toString('hex');
+        const updateCodeQuery = 'UPDATE users SET verificationCode = ? WHERE email = ?';
         await new Promise((resolve, reject) => {
-            connection.query(updateVerificationCodeQuery, [verificationCode, email], (err, result) => {
+            connection.query(updateCodeQuery, [verificationCode, email], (err, result) => {
                 if (err) {
                     console.error('Error updating verification code:', err);
                     reject(err);
                 }
-                resolve(result);
+                resolve();
             });
         });
 
-        // Enviar correo electrónico con el código de verificación
+        // Enviar el código de verificación al correo del usuario
+        const transporter = emailConfig.transporter;
         const mailOptions = {
             from: '"TareasProLiteOficial" <myemail@mail.com>',
             to: email,
             subject: 'Código de Verificación para Cambio de Contraseña',
             html: `
                 <div style="font-family: Arial, sans-serif; padding: 20px;">
-                    <h2>Tareas Pro Lite - Cambio de Contraseña</h2>
-                    <p>Hemos recibido una solicitud para cambiar la contraseña de tu cuenta en Tareas Pro Lite. Por favor, sigue las instrucciones a continuación:</p>
-                    <p style="font-weight: bold; font-size: 18px;">Tu código de verificación es: <span style="color: #007bff;">${verificationCode}</span></p>
-                    <p>Ingresa este código en la página de verificación para continuar con el cambio de contraseña.</p>
-                    <p>Si no has solicitado este cambio o no reconoces esta acción, por favor contáctanos inmediatamente en <a href="mailto:tareasproliteoficial@gmail.com">tareasproliteoficial@gmail.com</a>.</p>
-                    <p>Gracias por utilizar Tareas Pro Lite para gestionar tus tareas y proyectos.</p>
-                    <p>Atentamente,<br>El equipo de Tareas Pro Lite</p>
+                    <h2 style="color: #333;">Código de Verificación</h2>
+                    <p style="font-size: 16px;">Hola,</p>
+                    <p style="font-size: 16px;">Has solicitado un cambio de contraseña en Tareas Pro Lite. Utiliza el siguiente código de verificación para continuar con el proceso:</p>
+                    <p style="font-size: 24px; font-weight: bold;">${verificationCode}</p>
+                    <p style="font-size: 16px;">Este código de verificación es válido por un tiempo limitado.</p>
+                    <p style="font-size: 16px;">Si no solicitaste este cambio, puedes ignorar este correo.</p>
+                    <p style="font-size: 16px;">¡Gracias por utilizar Tareas Pro Lite!</p>
+                    <p style="font-size: 16px;">Atentamente,<br>El equipo de Tareas Pro Lite</p>
                 </div>
             `,
         };
 
-        await transporter.sendMail(mailOptions); // Utiliza el transporter
+        await transporter.sendMail(mailOptions);
 
-        res.status(200).json({ message: 'Se ha enviado un correo con el código de verificación', codigo: verificationCode });
+        res.status(200).json({ message: 'Se ha enviado un código de verificación a tu correo electrónico' });
     } catch (error) {
-        console.error('Error:', error);
-        res.status(500).json({ error: 'Error al solicitar el código. Verifica tu correo electrónico.' });
+        console.error('Error interno en el servidor:', error);
+        res.status(500).json({ error: 'Ocurrió un error al solicitar el cambio de contraseña. Por favor, inténtalo de nuevo más tarde.' });
     }
 });
+
+
+
 
 app.post('/verificar-codigo', async (req, res) => {
-    const { email, verificationCode, code } = req.body;
+    const { email, verificationCode } = req.body;
 
     try {
-        if (verificationCode === code) {
-            res.status(200).json({ message: 'Código de verificación correcto' });
-        } else {
-            res.status(400).json({ error: 'Código de verificación incorrecto' });
+        // Verificar si el correo electrónico proporcionado está registrado
+        const userQuery = 'SELECT * FROM users WHERE email = ?';
+        const user = await new Promise((resolve, reject) => {
+            connection.query(userQuery, [email], (err, results) => {
+                if (err) {
+                    console.error('Error querying the database:', err);
+                    reject(err);
+                }
+                resolve(results[0]);
+            });
+        });
+
+        if (!user) {
+            return res.status(400).json({ error: 'El correo electrónico no está registrado' });
         }
+
+        // Verificar si el código de verificación coincide con el almacenado en la base de datos
+        if (user.verificationCode !== verificationCode) {
+            return res.status(400).json({ error: 'El código de verificación no es válido' });
+        }
+
+        // Eliminar el código de verificación de la base de datos
+        const clearCodeQuery = 'UPDATE users SET verificationCode = NULL WHERE email = ?';
+        await new Promise((resolve, reject) => {
+            connection.query(clearCodeQuery, [email], (err, result) => {
+                if (err) {
+                    console.error('Error clearing verification code:', err);
+                    reject(err);
+                }
+                resolve();
+            });
+        });
+
+        res.status(200).json({ message: 'Código de verificación válido' });
     } catch (error) {
-        console.error('Error:', error);
-        res.status(500).json({ error: 'Error al verificar el código de verificación' });
+        console.error('Error interno en el servidor:', error);
+        res.status(500).json({ error: 'Ocurrió un error al verificar el código. Por favor, inténtelo de nuevo más tarde.' });
     }
 });
+
+
 
 function validarPasswords(req, res, next) {
     const { newPassword, confirmPassword } = req.body;
