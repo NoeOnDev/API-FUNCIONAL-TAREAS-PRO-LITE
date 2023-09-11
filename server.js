@@ -14,14 +14,13 @@ const emailConfig = require('./emailConfig');
 const middleWare = require('./middleWare');
 
 
-
 const isStrongPassword = (password) => {
     // La contraseña debe tener al menos 8 caracteres, una letra mayúscula y un número
     const strongPasswordRegex = /^(?=.*[A-Z])(?=.*\d).{8,}$/;
     return strongPasswordRegex.test(password);
 };
 
-app.post('/register', async (req, res) => {
+app.post('/register', validarPasswords , async (req, res) => {
     const { email, username, password } = req.body;
     const transporter = emailConfig.transporter;
 
@@ -39,7 +38,8 @@ app.post('/register', async (req, res) => {
             'yahoo.com',
             'hotmail.com',
             'outlook.com',
-            'ids.upchiapas.edu.mx'
+            'ids.upchiapas.edu.mx',
+            'catolica.edu.sv'
         ];
 
         const emailDomain = email.split('@')[1]; // Obtener el dominio del correo electrónico
@@ -295,7 +295,7 @@ app.post('/login', async (req, res) => {
 
         // Generar un token y agregarlo a la respuesta
         const token = middleWare.generateToken(user.id);
-        res.status(200).json({ message: 'Datos de acceso validados satisfactoriamente', token });
+        res.status(200).json({ message: 'Datos de acceso validados satisfactoriamente', token, username: user.username });
     } catch (error) {
         console.error('Error interno en el servidor:', error);
         res.status(500).json({ error: 'Ocurrió un error durante el proceso de inicio de sesión. Por favor, inténtelo de nuevo más tarde.' });
@@ -478,11 +478,6 @@ app.post('/cambiar-contrasena', validarPasswords, async (req, res) => {
     }
 });
 
-
-
-
-//Andrea Task
-
 app.post('/tareas/agregar', middleWare.verifyToken, (req, res) => {
     const { nombre } = req.query;
     const userId = req.userId; // Obtener userId del objeto req
@@ -578,6 +573,7 @@ app.get('/tareas/completadas', middleWare.verifyToken, (req, res) => {
         res.status(200).json(results);
     });
 });
+
 
 app.listen(3000, () => {
     console.log('Server listening on port 3000');

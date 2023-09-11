@@ -1,7 +1,6 @@
 const jwt = require('jsonwebtoken');
 require('dotenv').config();
 const jwtSecret = process.env.JWT_SECRET;
-const axios = require ('axios')
 
 const verifyToken = (req, res, next) => {
     const token = req.headers.authorization.split(' ')[1];
@@ -27,7 +26,7 @@ const verifyToken = (req, res, next) => {
 };
 
 const generateToken = (userId) => {
-    const tokenExpiration = '8h'; // 1 día, puedes ajustar este valor según tus necesidades
+    const tokenExpiration = '2h'; // 1 día, puedes ajustar este valor según tus necesidades
     return jwt.sign({ userId }, jwtSecret, { expiresIn: tokenExpiration });
 };
 
