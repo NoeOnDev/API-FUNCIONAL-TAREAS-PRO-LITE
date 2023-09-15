@@ -7,8 +7,8 @@ const authData = {
     user: 'tareasproliteoficial@gmail.com',
     clientId: "922505212231-ppfa8vdaunlt7uf8amame8hf0f82atm7.apps.googleusercontent.com",
     clientSecret: "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",
-    refreshToken: "1//04vqnPKsfVjG_CgYIARAAGAQSNwF-L9IrM6p8rb9AD8tIMEi4tOuj5SP6CDt0YQt63-1ZzdBQ3t0kaSvMBBb4a73e920wGeoqojo",
-    accessToken: 'ya29.a0AfB_byB3cyKlGPBWMqy6rZryLVjhTrdmFvF3Xih0AQ_6nDUu2NMxWVIdCUFrfgQQknu5acheYlodGxAExS-CP1HRUHr3yTQPkee0mRIhMjlGiFfOA8X9-Oa9dEMA7HrqYd-1LAgzO4VdpW0DP9lXE9gmUb1yXQ5jmL-EYAaCgYKAWQSARISFQHsvYlsJhF_R1x9A5tNo9Ui0Fui2A0173',
+    refreshToken: "1//04cTYnOPuYIulCgYIARAAGAQSNwF-L9IrJDpV7MHvzNBgEGgTBhhmpFgHB4mAP8zxgFeUJhhYqH8PiYFWik37RplNDir8mU1siEg",
+    accessToken: 'ya29.a0AfB_byCmeKv0b7sz5-1shQtZT_JRqBNjZ0qiTa5hTjvNZ9-0PTWGjyjahb-NuTUZ9kzrnkFp6-uOksmD3vwYMm_QKNPCX8Xf8zdhQYMNNKZOuPwcnw-odP5LDB6cRLACxIlLQK7Wq66Sk5bzjuQokdTFwqpxmT4HRKrvaCgYKAYQSARISFQGOcNnCUAAOqA5nCgiy80t3nx-L1A0171',
     expires: 1484314697598,
 };
 
