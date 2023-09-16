@@ -1,4 +1,4 @@
-const emailConfig = require('../../auth/emailConfig'); // Importa el módulo de configuración de correo
+const emailConfig = require('../../auth/email/emailConfig'); // Importa el módulo de configuración de correo
 const connection = require('../../database/database');
 
 async function verifyPasswordResetCodeController(req, res) {

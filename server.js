@@ -6,7 +6,7 @@ const cors = require('cors');
 app.use(cors());
 
 const registerUserController = require('./src/controllers/users/registerUserController');
-const verifyUserController = require('./src/controllers/users/virifyUserController');
+const verifyUserController = require('./src/controllers/users/verifyUserController');
 const loginUserController = require('./src/controllers/users/loginUserController');
 
 const requestPasswordResetController = require('./src/controllers/recoveryPassword/requestPasswordResetController');
@@ -19,7 +19,7 @@ const editarTareasController = require('./src/controllers/tasks/editarTareasCont
 const finalizarTareasController = require('./src/controllers/tasks/finalizarTareasController');
 const completarTareasController = require('./src/controllers/tasks/completarTareasController');
 
-const middleWare = require('./src/auth/middleWare');
+const middleWare = require('./src/auth/middleware/middleWare');
 
 const { validarPasswords } = require('./src/utils/passwordUtils');
 
@@ -27,7 +27,7 @@ const { validarPasswords } = require('./src/utils/passwordUtils');
 //RUTAS PARA GESTION DE USUARIOS
 app.post('/register', registerUserController.registerUserController);
 
-app.get('/verify', verifyUserController.virifyUserController);
+app.get('/verify', verifyUserController.verifyUserController);
 
 app.post('/login', loginUserController.loginUserController);
 

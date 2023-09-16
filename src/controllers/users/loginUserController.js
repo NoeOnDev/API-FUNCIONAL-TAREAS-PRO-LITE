@@ -1,8 +1,8 @@
 const bcrypt = require('bcrypt');
 
-const emailConfig = require('../../auth/emailConfig'); // Importa el módulo de configuración de correo
+const emailConfig = require('../../auth/email/emailConfig'); // Importa el módulo de configuración de correo
 const connection = require('../../database/database'); // Importa la conexión a la base de datos
-const middleWare = require('../../auth/middleWare');
+const middleWare = require('../../auth/middleware/middleWare');
 
 async function loginUserController(req, res) {
     try {
